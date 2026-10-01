@@ -25,7 +25,7 @@ class FirestoreManager:
             credentials_path: Ruta al archivo JSON de credenciales
         """
         self.collection_name = collection_name or FIRESTORE_CONFIG["collection_name"]
-        self.credentials_path = credentials_path or FIRESTORE_CONFIG.get("credentials_path", "firebase_key.json")
+        self.credentials_path = credentials_path or FIRESTORE_CONFIG.get("credentials_path")
         self.db = None
         self._inicializar_firebase()
 
