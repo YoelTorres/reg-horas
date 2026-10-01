@@ -119,7 +119,6 @@ class PlanillaPDF(FPDF):
             90,  # LUGAR
             45,  # INGRESO
             45,  # SALIDA
-            10,  # FIRMA
         ]
 
         headers = [
@@ -127,7 +126,6 @@ class PlanillaPDF(FPDF):
             "LUGAR",
             "INGRESO",
             "SALIDA",
-            "FIRMA"
         ]
 
         self.set_font("Helvetica", "B", 10)
@@ -195,7 +193,6 @@ class PlanillaPDF(FPDF):
             ingreso = datos.get("ingreso", "")
             egreso = datos.get("salida", "")
             lugar = datos.get("descripcion", "")
-            firma_id = datos.get("firma_id", "")
 
 
             # Dibujar celdas
@@ -269,23 +266,6 @@ class PlanillaPDF(FPDF):
                 str(egreso),
                 align="L"
             )
-
-            # =========================
-            # FIRMA
-            # =========================
-
-            if firma_id and self.gestor_firmas.firma_existe(firma_id):
-                ruta_firma = self.gestor_firmas.obtener_ruta_firma(firma_id)
-                try:
-                    self.image(
-                        ruta_firma,
-                        x + widths[0] + widths[1] + widths[2] + widths[3] + 1,
-                        row_y + 1,
-                        w=widths[4] - 2,
-                        h=row_height - 2
-                    )
-                except Exception as e:
-                    print(f"Error al insertar firma: {str(e)}")
 
             row_y += row_height
         # =========================
