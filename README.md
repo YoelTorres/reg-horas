@@ -62,6 +62,49 @@ export FIREBASE_PROJECT_ID=tu-proyecto-id
 
 ---
 
+## 📦 Dependencias
+
+### Librerías Externas Requeridas
+
+| Librería | Versión | Propósito |
+|----------|---------|----------|
+| **streamlit** | 1.28.1 | Framework web para la interfaz interactiva |
+| **pandas** | 2.1.3 | Manipulación y análisis de datos |
+| **firebase-admin** | 6.1.0 | Cliente oficial de Firebase/Firestore |
+| **python-dotenv** | 1.0.0 | Gestión segura de variables de entorno |
+| **Pillow** | 10.1.0 | Procesamiento de imágenes (firmas) |
+| **fpdf2** | 2.7.0 | Generación de documentos PDF |
+| **streamlit-drawable-canvas** | 0.2.3 | Componente para captura de firmas |
+| **numpy** | 1.24.3 | Computación numérica |
+
+### Instalar todas las dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### Librerías Estándar (incluidas con Python)
+
+- `datetime` - Manejo de fechas y horas
+- `os` - Operaciones del sistema operativo
+- `json` - Procesamiento de JSON
+- `pathlib` - Rutas del sistema de archivos
+- `typing` - Anotaciones de tipos
+- `io` - Operaciones de entrada/salida
+
+### Verificar instalación
+
+```bash
+# Ver todas las dependencias instaladas
+pip freeze
+
+# Verificar una dependencia específica
+python -c "import streamlit; print(streamlit.__version__)"
+python -c "import firebase_admin; print(firebase_admin.__version__)"
+```
+
+---
+
 ## 📁 Estructura de archivos
 
 ```
