@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Ruta donde se almacenará la clave de servicio JSON
-FIREBASE_KEY_PATH = os.getenv("FIREBASE_KEY_PATH", "firebase-key.json")
+FIREBASE_KEY_PATH = os.getenv("FIREBASE_KEY_PATH", "firebase_key.json")
 
 # Configuración de la base de datos
 FIRESTORE_CONFIG = {
