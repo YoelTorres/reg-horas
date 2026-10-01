@@ -53,3 +53,4 @@ streamlit_cache/
 *.csv.bak
 *.csv.old
 tempfiles/
+etc/
