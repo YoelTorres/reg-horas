@@ -15,6 +15,13 @@ class InterfazUI:
 
     LUGAR_TRABAJO = "La Reyna - Funes"
     HORAS_TRABAJO = 8
+    meses = [
+        "Enero", "Febrero", "Marzo", "Abril",
+        "Mayo", "Junio", "Julio", "Agosto",
+        "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ]
+    MES_ACTUAL = meses[datetime.now().month - 1]
+    ANIO_ACTUAL = datetime.now().strftime("%Y")
 
     @staticmethod
     def mostrar_titulo() -> None:
@@ -56,7 +63,7 @@ class InterfazUI:
             st.dataframe(df)
             #csv_buffer = df.to_csv(index=False)
             planillaPDF = PlanillaPDF()
-            pdf_doc = planillaPDF.generar("Micaela Santa María", "Septiembre", 2026, df)
+            pdf_doc = planillaPDF.generar("Micaela Santa María", InterfazUI.MES_ACTUAL, InterfazUI.ANIO_ACTUAL, df)
             st.download_button(
                 label="Exportar horas",
                 data=pdf_doc,
