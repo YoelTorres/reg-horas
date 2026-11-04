@@ -17,9 +17,15 @@ from clases.firebase_config import FIRESTORE_CONFIG
 class FirestoreManager:
     """Gestiona operaciones CRUD con Firebase Firestore."""
 
-    def __init__(self, collection_name: str = None, credentials_path: str = None):
+    def __init__(
+        self,
+        collection_name: str = None,
+        credentials_path: str = None,
+        users_collection_name: str = "usuarios",
+    ):
         self.collection_name = collection_name or FIRESTORE_CONFIG["collection_name"]
         self.credentials_path = credentials_path or FIRESTORE_CONFIG.get("credentials_path")
+        self.users_collection_name = users_collection_name
         self.db = None
         self._inicializar_firebase()
 
@@ -62,12 +68,53 @@ class FirestoreManager:
             st.warning(f"Error al cargar transacciones desde Firestore: {str(error)}")
             return []
 
-    def guardar(self, transacciones: List[Transaccion]) -> bool:
-        """Guarda o actualiza todas las transacciones en Firestore."""
+    def cargar_usuarios(self) -> List[str]:
+        """Carga la lista de usuarios desde Firestore."""
         try:
-            batch = self.db.batch()
-            collection_ref = self.db.collection(self.collection_name)
+            docs = self.db.collection(self.users_collection_name).stream()
+            usuarios = []
+            for doc in docs:
+                nombre = str(doc.to_dict().get("nombre", "")).strip().upper()
+                if nombre:
+                    usuarios.append(nombre)
+            return sorted(set(usuarios))
+        except Exception as error:
+            st.warning(f"Error al cargar usuarios desde Firestore: {str(error)}")
+            return []
 
+    def guardar_usuarios(self, usuarios: List[str]) -> bool:
+        """Guarda la lista de usuarios en Firestore y elimina los que ya no existen."""
+        try:
+            collection_ref = self.db.collection(self.users_collection_name)
+            docs = list(collection_ref.stream())
+            if docs:
+                batch_delete = self.db.batch()
+                for doc in docs:
+                    batch_delete.delete(doc.reference)
+                batch_delete.commit()
+
+            batch = self.db.batch()
+            for nombre in sorted(set(str(usuario).strip().upper() for usuario in usuarios if str(usuario).strip())):
+                batch.set(collection_ref.document(nombre), {"nombre": nombre})
+            batch.commit()
+            return True
+        except Exception as error:
+            st.error(f"Error al guardar usuarios en Firestore: {str(error)}")
+            return False
+
+    def guardar(self, transacciones: List[Transaccion]) -> bool:
+        """Guarda todas las transacciones en Firestore y elimina las que ya no existan."""
+        try:
+            collection_ref = self.db.collection(self.collection_name)
+            docs = list(collection_ref.stream())
+
+            if docs:
+                batch_delete = self.db.batch()
+                for doc in docs:
+                    batch_delete.delete(doc.reference)
+                batch_delete.commit()
+
+            batch = self.db.batch()
             for transaccion in transacciones:
                 doc_ref = collection_ref.document(self._generar_doc_id(transaccion))
                 batch.set(doc_ref, transaccion.to_dict(), merge=True)
@@ -144,6 +191,15 @@ class FirestoreManager:
             return True
         except Exception as error:
             st.error(f"Error al limpiar colección: {str(error)}")
+            return False
+
+    def eliminar_usuario(self, nombre: str) -> bool:
+        """Elimina un usuario de Firestore."""
+        try:
+            self.db.collection(self.users_collection_name).document(str(nombre).strip().upper()).delete()
+            return True
+        except Exception as error:
+            st.error(f"Error al eliminar usuario: {str(error)}")
             return False
 
     @staticmethod

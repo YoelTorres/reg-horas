@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from calendar import monthrange
+from datetime import date, datetime, time
 from typing import List
 
 import pandas as pd
@@ -44,13 +45,25 @@ class InterfazUI:
     @staticmethod
     def mostrar_formulario(gestor: GestorTransacciones) -> None:
         """Muestra formularios para usuarios y registros."""
+        InterfazUI.mostrar_formulario_usuarios(gestor)
+        InterfazUI.mostrar_formulario_transacciones(gestor)
+
+    @staticmethod
+    def mostrar_formulario_usuarios(gestor: GestorTransacciones) -> None:
+        """Muestra el formulario de usuarios."""
         InterfazUI._mostrar_formulario_usuarios(gestor)
+
+    @staticmethod
+    def mostrar_formulario_transacciones(gestor: GestorTransacciones) -> None:
+        """Muestra el formulario de alta de registros."""
         InterfazUI._mostrar_formulario_transacciones(gestor)
 
     @staticmethod
     def _mostrar_formulario_usuarios(gestor: GestorTransacciones) -> None:
-        """Shows the form to create users."""
+        """Muestra formulario para crear, editar y eliminar usuarios."""
         st.subheader("Usuarios", divider=True)
+        usuarios = gestor.obtener_usuarios()
+
         with st.form("nuevo_usuario"):
             nombre_usuario = st.text_input("Nombre del usuario")
             enviado = st.form_submit_button("Agregar usuario")
@@ -59,7 +72,39 @@ class InterfazUI:
                 if gestor.agregar_usuario(nombre_usuario):
                     st.success("Usuario agregado con éxito")
                     st.rerun()
-                st.warning("Ingresa un nombre válido y que no esté repetido")
+                else:
+                    st.warning("Ingresa un nombre válido y que no esté repetido")
+
+        if usuarios:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                usuario_seleccionado = st.selectbox(
+                    "Selecciona usuario",
+                    options=usuarios,
+                    key="usuario_editar_select",
+                )
+            with col2:
+                st.write("")
+                if st.button("🗑️ Eliminar", key="btn_eliminar_usuario"):
+                    if gestor.eliminar_usuario(usuario_seleccionado):
+                        st.success(f"Usuario {usuario_seleccionado} eliminado")
+                        st.rerun()
+                    else:
+                        st.warning("No se pudo eliminar el usuario")
+
+            st.write("")
+            with st.form("editar_usuario"):
+                nombre_editado = st.text_input(
+                    "Nuevo nombre",
+                    value=usuario_seleccionado,
+                    key="usuario_editado_input",
+                )
+                if st.form_submit_button("Guardar cambios"):
+                    if gestor.editar_usuario(usuario_seleccionado, nombre_editado):
+                        st.success("Usuario actualizado con éxito")
+                        st.rerun()
+                    else:
+                        st.warning("No se pudo actualizar el usuario")
 
     @staticmethod
     def _mostrar_formulario_transacciones(gestor: GestorTransacciones) -> None:
@@ -98,45 +143,73 @@ class InterfazUI:
     def mostrar_transacciones(
         transacciones: List[Transaccion], gestor: GestorTransacciones | None = None
     ) -> None:
-        """Muestra tabla de transacciones con opciones de descarga y eliminación."""
-        if transacciones:
-            datos = [transaccion.to_dict() for transaccion in transacciones]
-            df = pd.DataFrame(datos)
-            st.dataframe(df)
-            planilla_pdf = PlanillaPDF()
-            nombre_usuario = transacciones[0].usuario if transacciones[0].usuario else "Sin usuario"
-            pdf_doc = planilla_pdf.generar(
-                nombre_usuario,
-                InterfazUI.MES_ACTUAL,
-                InterfazUI.ANIO_ACTUAL,
-                df,
+        """Muestra tabla de transacciones con filtros y opciones de descarga y eliminación."""
+        hoy = date.today()
+        primer_dia = date(hoy.year, hoy.month, 1)
+        ultimo_dia = date(hoy.year, hoy.month, monthrange(hoy.year, hoy.month)[1])
+
+        usuarios = sorted({str(t.usuario).strip().upper() for t in transacciones if str(t.usuario).strip()})
+        usuario_seleccionado = st.selectbox("Filtrar por usuario", ["Todos", *usuarios])
+        fecha_desde = st.date_input("Desde", value=primer_dia, min_value=primer_dia, max_value=ultimo_dia)
+        fecha_hasta = st.date_input("Hasta", value=ultimo_dia, min_value=primer_dia, max_value=ultimo_dia)
+
+        if fecha_desde > fecha_hasta:
+            st.warning("La fecha 'Desde' no puede ser mayor que 'Hasta'.")
+            fecha_desde, fecha_hasta = fecha_hasta, fecha_desde
+
+        transacciones_filtradas = gestor.filtrar(
+            usuario=None if usuario_seleccionado == "Todos" else usuario_seleccionado,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+        ) if gestor else [
+            t for t in transacciones if (fecha_desde <= t.fecha <= fecha_hasta) and (
+                usuario_seleccionado == "Todos" or str(t.usuario).strip().upper() == usuario_seleccionado
             )
-            st.download_button(
-                label="Exportar horas",
-                data=pdf_doc,
-                file_name="mis_horas.pdf",
-                mime="application/octet-stream",
+        ]
+
+        if not transacciones_filtradas:
+            st.info("No hay transacciones para los filtros seleccionados")
+            return
+
+        datos = [transaccion.to_dict() for transaccion in transacciones_filtradas]
+        df = pd.DataFrame(datos)
+        st.dataframe(df)
+
+        planilla_pdf = PlanillaPDF()
+        usuarios_en_tabla = sorted({str(t.usuario).strip().upper() for t in transacciones_filtradas if str(t.usuario).strip()})
+        nombre_usuario = usuarios_en_tabla[0] if usuarios_en_tabla else "Sin usuario"
+        pdf_doc = planilla_pdf.generar(
+            nombre_usuario,
+            InterfazUI.MES_ACTUAL,
+            InterfazUI.ANIO_ACTUAL,
+            df,
+        )
+        st.download_button(
+            label="Exportar horas",
+            data=pdf_doc,
+            file_name=f"horas_{nombre_usuario.lower()}_{fecha_desde.isoformat()}_a_{fecha_hasta.isoformat()}.pdf",
+            mime="application/octet-stream",
+        )
+
+        if gestor:
+            st.subheader("Eliminar registro", divider=True)
+            indices = list(range(len(transacciones_filtradas)))
+            descripciones = [
+                f"{t.usuario} - {t.descripcion} - {t.fecha} {t.ingreso}" for t in transacciones_filtradas
+            ]
+            indice_seleccionado = st.selectbox(
+                "Selecciona un registro para eliminar",
+                indices,
+                format_func=lambda x: descripciones[x],
+                label_visibility="collapsed",
             )
 
-            if gestor:
-                st.subheader("Eliminar registro", divider=True)
-                indices = list(range(len(transacciones)))
-                descripciones = [
-                    f"{t.usuario} - {t.descripcion} - {t.fecha} {t.ingreso}" for t in transacciones
-                ]
-                indice_seleccionado = st.selectbox(
-                    "Selecciona un registro para eliminar",
-                    indices,
-                    format_func=lambda x: descripciones[x],
-                    label_visibility="collapsed",
+            if st.button("🗑️ Eliminar", key="btn_eliminar"):
+                gestor.eliminar(
+                    next(i for i, t in enumerate(transacciones) if t == transacciones_filtradas[indice_seleccionado])
                 )
-
-                if st.button("🗑️ Eliminar", key="btn_eliminar"):
-                    gestor.eliminar(indice_seleccionado)
-                    st.success("Registro eliminado correctamente")
-                    st.rerun()
-        else:
-            st.info("No hay transacciones registradas")
+                st.success("Registro eliminado correctamente")
+                st.rerun()
 
     @staticmethod
     def mostrar_firma() -> CanvasResult:

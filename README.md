@@ -1,15 +1,14 @@
-# 📋 RegHoras - Integración Firebase Firestore
+# 📋 RegHoras - Firestore
 
 ## Descripción
 
-Proyecto mejorado para gestionar registros de horas con soporte para **CSV** y **Firebase Firestore**.
+Proyecto para gestionar registros de horas usando exclusivamente **Firebase Firestore**.
 
 ### Características
-✅ Carga/Guarda en CSV (compatibilidad existente)  
-✅ Carga/Guarda en Firebase Firestore  
-✅ Cambio dinámico de backend  
-✅ Misma lógica y estructura, solo cambio de almacenamiento  
-✅ Fallback automático a CSV si Firestore falla  
+✅ Carga y guardado en Firebase Firestore  
+✅ Gestión de usuarios con alta, edición y eliminación  
+✅ Registro de transacciones con firma y exportación PDF  
+✅ Configuración centralizada por variables de entorno  
 
 ---
 

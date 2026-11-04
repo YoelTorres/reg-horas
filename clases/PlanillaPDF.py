@@ -80,6 +80,7 @@ class PlanillaPDF(FPDF):
         df = df.copy()
         df["DIA"] = pd.to_datetime(df["fecha"])
         df["DIA_NUM"] = df["DIA"].dt.day
+        df = df.drop_duplicates(subset=["DIA_NUM"], keep="last")
         datos_por_dia = df.set_index("DIA_NUM").to_dict("index")
 
         row_y = y + 16
